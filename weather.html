@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+   <link rel="stylesheet" href="main1.css">
+   <meta charset="UTF-8">
+   <head>
+      <title>Wetterbericht</title>
+   </head>
+   <body>
+      <h1>Wetterbericht für <span id="city"></span></h1>
+      <form>
+         <input type="text" placeholder="Suche nach einem Ort" autofocus id="search-input">
+         <button type="submit">Suchen</button>
+         <span class="msg"></span>
+      </form>
+      <div class="current-weather">
+         <h2>Aktuelles Wetter</h2>
+         <p><span class="temperature"><span></span>°C<br><small></small></span></p>
+         <p><span class="weather-panel"></span></p>
+      </div>
+      <div class="forecast-weather">
+         <h2>5-Tages-Vorschau</h2>
+         <ul class="forecast"></ul>
+      </div>
+      <script>
+         const API_KEY = "174b89c76b95235f1306f9785191800b";
+         const citySpan = document.getElementById("city");
+         const temperatureSpan = document.querySelector(".temperature span");
+         const minMaxSpan = document.querySelector(".temperature small");
+         const descSpan = document.querySelector(".weather-panel");
+         const forecastList = document.querySelector(".forecast");
+         const form = document.querySelector("form");
+         const input = document.querySelector("input");
+         const msg = document.querySelector(".msg");
+         
+          //Search Button
+         
+         form.addEventListener("submit", e => {
+           e.preventDefault();
+           const cityName = input.value.trim();
+           if (cityName === "") {
+             msg.textContent = "Bitte gib einen Städtenamen ein!";
+                } else {
+         msg.textContent = "";
+         fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${API_KEY}&units=metric&lang=de`)
+           .then(response => {
+             if (!response.ok) {
+               throw new Error("Stadt konnte nicht gefunden werden.");
+             }
+             return response.json();
+           })
+           .then(data => {
+             const city = data.name;
+             const temperature = data.main.temp;
+             const minTemp = temperature;
+             const maxTemp = temperature;
+             const description = data.weather[0].description;
+             const icon = data.weather[0].icon;
+         
+             // set the values in the HTML
+             citySpan.textContent = city;
+             temperatureSpan.textContent = Math.round(temperature);
+             descSpan.textContent = description;
+             msg.textContent = "";
+           })
+           .catch(error => {
+             msg.textContent = error.message;
+             citySpan.textContent = "";
+             temperatureSpan.textContent = "";
+             minMaxSpan.textContent = "";
+             descSpan.textContent = "";
+           });
+                    
+                    
+        //Forecast fetch            
+         
+         fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&appid=${API_KEY}&units=metric&lang=de`)
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("Stadt konnte nicht gefunden werden..");
+    }
+    return response.json();
+  })
+  .then(data => {
+    forecastList.innerHTML = "";
+    const forecastData = data.list.filter(item => item.dt_txt.includes("12:00:00"));
+    let minTempFore = Number.MAX_VALUE;
+    let maxTempFore = Number.MIN_VALUE;
+    for (let i = 0; i < forecastData.length; i++) {
+      const date = new Date(forecastData[i].dt * 1000);
+      const day = date.toLocaleDateString("de-DE", { weekday: "long" });
+      const temperatureFore = Math.round(forecastData[i].main.temp);
+      const description = forecastData[i].weather[0].description;
+      const icon = forecastData[i].weather[0].icon;
+      const precipitationProb = forecastData[i].pop * 100; // get the probability of precipitation
+      const precipitation = forecastData[i].rain ? forecastData[i].rain["3h"] * 8 : 0; // get the daily precipitation volume
+      if (temperatureFore < minTempFore) {
+        minTempFore = temperatureFore;
+      }
+      if (temperatureFore > maxTempFore) {
+        maxTempFore = temperatureFore;
+      }
+      const li = document.createElement("li");
+      li.innerHTML = `<span>${day}</span>
+                       <span style="font-weight: bold; font-size: 24px;">${temperatureFore}°C</span>
+                       <span style="font-weight: bold; font-size: 16px; margin-top:1em; class="weather-panel">${description}</span>
+                       <span style="font-weight: lighter; color:#757575; font-size: 16px;">${precipitationProb}% Niederschlag</span>
+                       <span style="font-weight: lighter; color:#757575; font-size: 16px;">${precipitation.toFixed(1)} mm Niederschlag</span>`;
+        
+      forecastList.appendChild(li);
+    }
+    minMaxSpan.textContent = `${Math.round(minTempFore)}°C / ${Math.round(maxTempFore)}°C`;
+  })
+  .catch(error => {
+    msg.textContent = error.message;
+    citySpan.textContent = "";
+    temperatureSpan.textContent = "";
+    minMaxSpan.textContent = "";
+    descSpan.textContent = "";
+  });
+
+         
+         }
+         });
+         
+         // set the current date in the HTML
+         const currentDate = new Date();
+         const dateOptions = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+         document.getElementById("current-date").textContent = currentDate.toLocaleDateString("de-DE", dateOptions);
+          
+
+
+          
+          
+      </script>
+   </body>
+</html>
